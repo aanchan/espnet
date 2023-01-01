@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=-1
+stage=0
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=10        # number of parallel jobs
@@ -33,7 +33,13 @@ trim_win_length=1024
 trim_shift_length=256
 trim_min_silence=0.01
 
-trans_type=char  # char or phn
+# Input transcription type: char or phn
+# Example
+#  char: ミズヲマレーシアカラカワナクテワナラナイノデス。
+#  phn: m i z u o m a r e e sh i a k a r a k a w a n a k U t e w a n a r a n a i n o d e s U
+# NOTE: original transcription is provided by 漢字仮名交じり文. We convert the input to
+# kana or phoneme using OpenJTalk's NLP frontend at the data prep. stage.
+trans_type="phn"  # char or phn
 
 # config files
 train_config=conf/train_pytorch_transformer+spkemb.yaml
@@ -55,9 +61,9 @@ pretrained_model_name=          # If use provided pretrained models, only set to
 finetuned_model_name=           # Only set to `tts1_[trgspk]`
 
 # dataset configuration
-db_root=downloads/vcc20
+db_root=downloads/jp_dialect
 list_dir=local/lists
-spk=TEF1
+spk=HCK01
 
 # vc configuration
 srcspk=                                         # Ex. SEF1

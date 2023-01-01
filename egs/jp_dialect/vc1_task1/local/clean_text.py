@@ -24,7 +24,8 @@ def g2p(text, trans_type="char"):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("in_text", type=str, help="text to be cleaned")
-    parser.add_argument("out_text", type=str, help="text to be cleaned")
+    parser.add_argument("input_spk2utt", type=str, help="input spk2utt file")
+    parser.add_argument("out_text", type=str, help="output text file")
     parser.add_argument(
         "trans_type",
         type=str,
@@ -33,10 +34,13 @@ if __name__ == "__main__":
         help="Input transcription type",
     )
     args = parser.parse_args()
+    with open(args.input_spk2utt,"r",) as s2u:
+        ids=s2u.readlines()
+        assert len(ids)==1
+        ids=ids[0].split()[1:]
     with codecs.open(args.in_text, "r", "utf-8") as f_in, codecs.open(
         args.out_text, "w", "utf-8"
     ) as f_out:
-        for line in f_in.readlines():
-            id, content = line.split(":")
+        for content, id in zip(f_in.readlines(), ids):
             clean_content = g2p(content, args.trans_type)
             f_out.write("%s %s\n" % (id, clean_content))
