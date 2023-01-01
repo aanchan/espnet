@@ -8,9 +8,9 @@
 
 # general configuration
 backend=pytorch
-stage=-1
+stage=3
 stop_stage=100
-ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=3       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # number of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=1    # verbose option (if set > 0, get more log)
@@ -39,7 +39,7 @@ hf_repo=
 trans_type="phn"
 
 # config files
-train_config=conf/train_pytorch_transformer.yaml
+train_config=conf/train_pytorch_transformer+spkemb.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
@@ -143,6 +143,47 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
 
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 3: x-vector extraction"
+    # Make MFCCs and compute the energy-based VAD for each dataset
+    mfccdir=mfcc
+    vaddir=mfcc
+    for name in ${train_set} ${train_dev} ${eval_set}; do
+        utils/copy_data_dir.sh data/${name} data/${name}_mfcc_16k
+        utils/data/resample_data_dir.sh 16000 data/${name}_mfcc_16k
+        steps/make_mfcc.sh \
+            --write-utt2num-frames true \
+            --mfcc-config conf/mfcc.conf \
+            --nj ${nj} --cmd "$train_cmd" \
+            data/${name}_mfcc_16k exp/make_mfcc ${mfccdir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
+        sid/compute_vad_decision.sh --nj 1 --cmd "$train_cmd" \
+            data/${name}_mfcc_16k exp/make_vad ${vaddir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
+    done
+
+    # Check pretrained model existence
+    nnet_dir=exp/xvector_nnet_1a
+    if [ ! -e ${nnet_dir} ]; then
+        echo "X-vector model does not exist. Download pre-trained model."
+        wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
+        tar xvf 0008_sitw_v2_1a.tar.gz
+        mv 0008_sitw_v2_1a/exp/xvector_nnet_1a exp
+        rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
+    fi
+    # Extract x-vector
+    for name in ${train_set} ${train_dev} ${eval_set}; do
+        sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj 1 \
+            ${nnet_dir} data/${name}_mfcc_16k \
+            ${nnet_dir}/xvectors_${name}
+    done
+    # Update json
+    for name in ${train_set} ${train_dev} ${eval_set}; do
+        local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
+    done
+fi
+
+
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
 else
@@ -150,8 +191,8 @@ else
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: Text-to-speech model training"
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "stage 4: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
@@ -173,8 +214,8 @@ if [ ${n_average} -gt 0 ]; then
     model=model.last${n_average}.avg.best
 fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: Decoding"
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: Decoding"
     if [ ${n_average} -gt 0 ]; then
         average_checkpoints.py --backend ${backend} \
                                --snapshots ${expdir}/results/snapshot.ep.* \
@@ -208,8 +249,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "stage 5: Synthesis"
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: Synthesis"
     pids=() # initialize pids
     for sets in ${train_dev} ${eval_set}; do
     (
@@ -237,55 +278,5 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "Finished."
 fi
 
-if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-	[ -z "${hf_repo}" ] && \
-	    log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
-	    exit 1
-	echo "Stage 10: Upload model to HuggingFace: ${hf_repo}"
 
-	gitlfs=$(git lfs --version 2> /dev/null || true)
-	[ -z "${gitlfs}" ] && \
-	    echo "ERROR: You need to install git-lfs first" && \
-	    exit 1
-
-	dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
-	[ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
-
-	if command -v git &> /dev/null; then
-	    _creator_name="$(git config user.name)"
-	    _checkout="git checkout $(git show -s --format=%H)"
-	else
-	    _creator_name="$(whoami)"
-	    _checkout=""
-	fi
-	# /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
-	_task="$(pwd | rev | cut -d/ -f2 | rev)"
-	# foo/asr1 -> foo
-	_corpus="${_task%/*}"
-	_model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-
-	# copy files in ${dir_repo}
-	unzip -o ${packed_model} -d ${dir_repo}
-	# Generate description file
-	# shellcheck disable=SC2034
-	hf_task=tts1
-	# shellcheck disable=SC2034
-	espnet_task=TTS
-	# shellcheck disable=SC2034
-	task_exp=${expdir}
-	eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
-
-	this_folder=${PWD}
-	cd ${dir_repo}
-	if [ -n "$(git status --porcelain)" ]; then
-	    git add .
-	    git commit -m "Update model"
-	fi
-	git push
-	cd ${this_folder}
-    fi
-else
-    echo "Skip the uploading to HuggingFace stage"
-fi
 
