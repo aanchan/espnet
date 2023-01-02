@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=3
+stage=-1
 stop_stage=100
 ngpu=3       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # number of parallel jobs
