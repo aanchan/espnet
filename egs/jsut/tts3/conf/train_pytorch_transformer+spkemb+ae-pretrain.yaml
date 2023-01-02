@@ -61,7 +61,7 @@ use-guided-attn-loss: true
 num-heads-applied-guided-attn: 2
 num-layers-applied-guided-attn: 2
 modules-applied-guided-attn: ["encoder-decoder"]
-dec-init: "downloads/pretrained_decoder/model.last1.avg.best"
+dec-init: "downloads/phn_train_no_dev_pytorch_train_pytorch_transformer+spkemb/results/model.last1.avg.best"
 dec-init-mods: decoder,postnet,feat_out,prob_out
 freeze-mods: decoder,postnet,feat_out,prob_out
 enc-init-mods: encoder
