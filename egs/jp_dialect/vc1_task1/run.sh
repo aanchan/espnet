@@ -66,8 +66,8 @@ list_dir=local/lists
 spk=HCK01
 
 # vc configuration
-srcspk=                                         # Ex. SEF1
-trgspk=                                         # Ex. TEF1
+srcspk=HCK01                                         # Ex. SEF1
+trgspk=TK01                                         # Ex. TEF1
 asr_model="librispeech.transformer.ngpu4"
 test_list_file=local/lists/eval_list.txt
 test_name=eval_asr
