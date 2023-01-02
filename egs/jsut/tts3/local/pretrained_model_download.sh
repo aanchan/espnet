@@ -19,7 +19,7 @@ fi
 
 
 case "${pretrained_model}" in
-    "tts1")             share_url="https://drive.google.com/open?id=1m2KfwEClR4RWXthXCRwwhTjuCqV3nQ_N" ;;
+    "phn_train_no_dev_pytorch_train_pytorch_transformer+spkemb")             share_url="https://drive.google.com/open?id=1m2KfwEClR4RWXthXCRwwhTjuCqV3nQ_N" ;;
     *) echo "No such pretrained model: ${pretrained_model}"; exit 1 ;;
 esac
 
