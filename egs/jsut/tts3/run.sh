@@ -49,8 +49,8 @@ griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 voc=GL
 
 # pretrained model related
-pretrained_model=pretrained_decoder
-pretrained_decoder_path="downloads/pretrained_decoder/model.last1.avg.best"
+pretrained_model_dir="downloads"
+pretrained_model_name="phn_train_no_dev_pytorch_train_pytorch_transformer+spkemb"
 
 # dataset configuration
 db_root=downloads
@@ -72,9 +72,16 @@ train_set="${trans_type}_train_no_dev"
 dev_set="${trans_type}_dev"
 eval_set="${trans_type}_eval"
 
+
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     local/download.sh ${db_root}
+
+    if [ ! -d ${pretrained_model_dir}/${pretrained_model_name} ]; then
+        echo "Downloading pretrained TTS model..."
+        local/pretrained_model_download.sh ${pretrained_model_dir} ${pretrained_model_name}
+    fi
+    echo "Pretrained TTS model exists: ${pretrained_model_name}"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -122,7 +129,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # compute statistics for global mean-variance normalization 
     # compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
     # use pretrained model cmvn
-    cmvn=$(find ${db_root}/${pretrained_model} -name "cmvn.ark" | head -n 1)
+    cmvn=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "cmvn.ark" | head -n 1)
 
     # dump features for training
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
@@ -134,7 +141,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 
-dict=$(find ${db_root}/${pretrained_model} -name "*_units.txt" | head -n 1)
+dict=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "*_units.txt" | head -n 1)
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
@@ -209,12 +216,6 @@ expdir=exp/${expname}
 # Encoder pretraining
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Encoder pretraining"
-
-    # Suggested usage:
-    # 1. Specify --pretrained_decoder_path (eg. exp/<..>/results/snapshot.ep.xxx)
-    # 2. Specify --n_average 0
-    # 3. Specify --train_config (original config for TTS) and --ept_train_config (new config for ept)
-    # 4. Specfiy --ept_tag
 
     # check input arguments
     if [ -z ${train_config} ]; then
@@ -296,7 +297,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
         
 	#use pretrained model cmvn
-        cmvn=$(find ${db_root}/${pretrained_decoder} -name "cmvn.ark" | head -n 1)
+        cmvn=$(find ${pretrained_model_dir}/${pretrained_model_name} -name "cmvn.ark" | head -n 1)
         apply-cmvn --norm-vars=true --reverse=true ${cmvn} \
             scp:${outdir}/${name}/feats.scp \
             ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
