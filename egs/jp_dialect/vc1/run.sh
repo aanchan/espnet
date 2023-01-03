@@ -10,7 +10,7 @@
 backend=pytorch
 stage=-1
 stop_stage=100
-ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=3       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=16        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=1    # verbose option (if set > 0, get more log)
@@ -55,7 +55,7 @@ griffin_lim_iters=64        # The number of iterations of Griffin-Lim
 pretrained_model=           # available pretrained models: m_ailabs.judy.vtn_tts_pt
 
 # dataset configuration
-db_root=downloads/jp_dialect/speech
+db_root=downloads/jp_dialect
 srcspk=TK05                  # available speakers: "slt" "clb" "bdl" "rms"
 trgspk=HCK02
 num_train_utts=-1           # -1: use all 932 utts
@@ -105,7 +105,8 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
     for spk_org_set in ${src_org_set} ${trg_org_set}; do
-        local/data_prep.sh ${db_root}/cmu_us_${spk_org_set}_arctic ${spk_org_set} data/${spk_org_set}
+        local/data_prep_task1.sh ${db_root} data/${spk_org_set} ${spk_org_set} ${trans_type}
+        utils/data/resample_data_dir.sh ${fs} data/${org_set} # Downsample to fs from 24k
         utils/fix_data_dir.sh data/${spk_org_set}
         utils/validate_data_dir.sh --no-feats data/${spk_org_set}
     done
@@ -149,10 +150,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             ${fbankdir}
 
         # make train/dev/eval set
-        utils/subset_data_dir.sh --last data/${spk_org_set} 200 data/${spk_org_set}_tmp
-        utils/subset_data_dir.sh --last data/${spk_org_set}_tmp 100 data/${spk_eval_set}
-        utils/subset_data_dir.sh --first data/${spk_org_set}_tmp 100 data/${spk_dev_set}
-        n=$(( $(wc -l < data/${spk_org_set}/wav.scp) - 200 ))
+        utils/subset_data_dir.sh --last data/${spk_org_set} 20 data/${spk_org_set}_tmp
+        utils/subset_data_dir.sh --last data/${spk_org_set}_tmp 10 data/${spk_eval_set}
+        utils/subset_data_dir.sh --first data/${spk_org_set}_tmp 10 data/${spk_dev_set}
+        n=$(( $(wc -l < data/${spk_org_set}/wav.scp) - 20 ))
         utils/subset_data_dir.sh --first data/${spk_org_set} ${n} data/${spk_train_set}
         rm -rf data/${spk_org_set}_tmp
     done

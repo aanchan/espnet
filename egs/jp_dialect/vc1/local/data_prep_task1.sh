@@ -39,7 +39,7 @@ text=${data_dir}/text
 
 # make scp, utt2spk, and spk2utt
 find ${db}/speech/${spk} -follow -name "*.wav" | sort | while read -r filename;do
-    id="${spk}_$(basename ${filename} | sed -e "s/\.[^\.]*$//g")"
+    id="$(basename ${filename} | sed -e "s/\.[^\.]*$//g")"
     echo "${id} ${filename}" >> ${scp}
     echo "${id} ${spk}" >> ${utt2spk}
 done
