@@ -169,7 +169,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # Make MFCCs and compute the energy-based VAD for each dataset
     mfccdir=mfcc
     vaddir=mfcc
-    for name in ${train_set} ${train_dev} ${eval_set}; do
+    for name in ${train_set} ${dev_set} ${eval_set}; do
         utils/copy_data_dir.sh data/${name} data/${name}_mfcc_16k
         utils/data/resample_data_dir.sh 16000 data/${name}_mfcc_16k
         steps/make_mfcc.sh \
@@ -193,13 +193,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
     fi
     # Extract x-vector
-    for name in ${train_set} ${train_dev} ${eval_set}; do
+    for name in ${train_set} ${dev_set} ${eval_set}; do
         sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj 1 \
             ${nnet_dir} data/${name}_mfcc_16k \
             ${nnet_dir}/xvectors_${name}
     done
     # Update json
-    for name in ${train_set} ${train_dev} ${eval_set}; do
+    for name in ${train_set} ${dev_set} ${eval_set}; do
         local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
     done
 fi
