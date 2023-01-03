@@ -23,9 +23,8 @@ case "${pretrained_model}" in
     *) echo "No such pretrained model: ${pretrained_model}"; exit 1 ;;
 esac
 
-dir=${download_dir}/${pretrained_model}
+dir=${download_dir}
 
-mkdir -p ${dir}
 if [ ! -e ${dir}/.complete ]; then
     download_from_google_drive.sh ${share_url} ${dir} ".zip"
     touch ${dir}/.complete
