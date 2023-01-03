@@ -154,14 +154,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
          data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
     data2json.sh --feat ${feat_ev_dir}/feats.scp --trans_type ${trans_type} \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
-    
-    # make json for encoder pretraining, using 80-d input and 80-d output
-    local/make_ae_json.py --input-json ${feat_tr_dir}/data.json \
-        --output-json ${feat_tr_dir}/data.json -O ${feat_tr_dir}/ae_data.json
-    local/make_ae_json.py --input-json ${feat_dt_dir}/data.json \
-        --output-json ${feat_dt_dir}/data.json -O ${feat_dt_dir}/ae_data.json
-    local/make_ae_json.py --input-json ${feat_ev_dir}/data.json \
-        --output-json ${feat_ev_dir}/data.json -O ${feat_ev_dir}/ae_data.json
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -204,6 +196,16 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     done
 fi
 
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "stage 4: AE JSON prep"
+    # make json for encoder pretraining, using 80-d input and 80-d output
+    local/make_ae_json.py --input-json ${feat_tr_dir}/data.json \
+        --output-json ${feat_tr_dir}/data.json -O ${feat_tr_dir}/ae_data.json
+    local/make_ae_json.py --input-json ${feat_dt_dir}/data.json \
+        --output-json ${feat_dt_dir}/data.json -O ${feat_dt_dir}/ae_data.json
+    local/make_ae_json.py --input-json ${feat_ev_dir}/data.json \
+        --output-json ${feat_ev_dir}/data.json -O ${feat_ev_dir}/ae_data.json
+fi
 
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
@@ -214,8 +216,8 @@ expdir=exp/${expname}
 
 
 # Encoder pretraining
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: Encoder pretraining"
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: Encoder pretraining"
 
     # check input arguments
     if [ -z ${train_config} ]; then
@@ -248,8 +250,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
            --config ${train_config}
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "stage 5: Decoding"
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: Decoding"
     
     if [ ${n_average} -gt 0 ]; then
         model=model.last${n_average}.avg.best
@@ -289,8 +291,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 fi
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "stage 6: Synthesis"
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "stage 7: Synthesis"
     pids=() # initialize pids
     for name in ${dev_set} ${eval_set}; do
     (
