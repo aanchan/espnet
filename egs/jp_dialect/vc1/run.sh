@@ -11,7 +11,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=3       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=16        # numebr of parallel jobs
+nj=2       # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -52,14 +52,14 @@ voc=GL                     # vocoder used (GL or PWG)
 griffin_lim_iters=64        # The number of iterations of Griffin-Lim
 
 # pretrained model related
-pretrained_model=           # available pretrained models: m_ailabs.judy.vtn_tts_pt
+pretrained_model=m_ailabs.judy.vtn_tts_pt           # available pretrained models: m_ailabs.judy.vtn_tts_pt
 
 # dataset configuration
 db_root=downloads/jp_dialect
 srcspk=TK05                  # available speakers: "slt" "clb" "bdl" "rms"
 trgspk=HCK02
 num_train_utts=-1           # -1: use all 932 utts
-norm_name=                  # used to specify normalized data.
+norm_name=judy                  # used to specify normalized data.
                             # Ex: `judy` for normalization with pretrained model, `self` for self-normalization
 
 # exp tag
@@ -106,7 +106,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
     for spk_org_set in ${src_org_set} ${trg_org_set}; do
         local/data_prep_task1.sh ${db_root} data/${spk_org_set} ${spk_org_set} ${trans_type}
-        utils/data/resample_data_dir.sh ${fs} data/${org_set} # Downsample to fs from 24k
+        utils/data/resample_data_dir.sh ${fs} data/${spk_org_set} # Downsample to fs from 24k
         utils/fix_data_dir.sh data/${spk_org_set}
         utils/validate_data_dir.sh --no-feats data/${spk_org_set}
     done

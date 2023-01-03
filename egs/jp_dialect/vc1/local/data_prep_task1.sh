@@ -48,7 +48,8 @@ echo "finished making wav.scp, utt2spk, spk2utt."
 
 # make text (only for the utts in utt2spk)
 # do not need this for vc
-#local/clean_text.py \
-#    ${db}/text/${spk}.orig ${spk2utt} ${text} ${trans_type}
+
+local/clean_text.py \
+    ${db}/text/${spk}.orig ${spk2utt} ${text} ${trans_type}
 
 echo "finished making text."
