@@ -27,7 +27,7 @@ dir=${download_dir}/${pretrained_model}
 
 mkdir -p ${dir}
 if [ ! -e ${dir}/.complete ]; then
-    download_from_google_drive.sh ${share_url} ${dir} ".tar.gz"
+    download_from_google_drive.sh ${share_url} ${dir} ".zip"
     touch ${dir}/.complete
 fi
 echo "Successfully finished download of pretrained model."
