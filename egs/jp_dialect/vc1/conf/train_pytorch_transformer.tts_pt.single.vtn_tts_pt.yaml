@@ -57,5 +57,5 @@ patience: 0
 epochs: 1000
 save-interval-epoch: 100
 eval-interval-epoch: 100
-enc-init: downloads/m_ailabs.judy.vtn_tts_pt/m_ailabs.judy.vtn_tts_pt/snapshot.ep.500
-dec-init: downloads/m_ailabs.judy.vtn_tts_pt/m_ailabs.judy.vtn_tts_pt/snapshot.ep.500
+enc-init: downloads/jp_dialect/m_ailabs.judy.vtn_tts_pt/m_ailabs.judy.vtn_tts_pt/snapshot.ep.500
+dec-init: downloads/jp_dialect/m_ailabs.judy.vtn_tts_pt/m_ailabs.judy.vtn_tts_pt/snapshot.ep.500
