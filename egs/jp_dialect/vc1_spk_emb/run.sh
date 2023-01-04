@@ -36,7 +36,7 @@ win_length="" # window length
 trans_type="phn"  # char or phn
 
 # config files
-train_config=
+train_config=conf/train_pytorch_transformer.tts_pt.single.smk_emb.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
@@ -46,7 +46,7 @@ voc=GL                     # vocoder used (GL or PWG)
 griffin_lim_iters=64        # The number of iterations of Griffin-Lim
 
 # pretrained model related
-pretrained_model=m_ailabs.judy.vtn_tts_pt           # available pretrained models: m_ailabs.judy.vtn_tts_pt
+pretrained_model=phn_train_no_dev_pytorch_ept_train_pytorch_transformer_spk_emb          # available pretrained models: m_ailabs.judy.vtn_tts_pt
 
 # dataset configuration
 db_root=downloads/jp_dialect
@@ -202,7 +202,47 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: Pair Json Data Preparation"
+    echo "stage 3: x-vector extraction"
+    # Make MFCCs and compute the energy-based VAD for each dataset
+    mfccdir=mfcc
+    vaddir=mfcc
+    for name in ${trg_train_set} ${trg_dev_set} ${trg_eval_set}; do
+        utils/copy_data_dir.sh data/${name} data/${name}_mfcc_16k
+        utils/data/resample_data_dir.sh 16000 data/${name}_mfcc_16k
+        steps/make_mfcc.sh \
+            --write-utt2num-frames true \
+            --mfcc-config conf/mfcc.conf \
+            --nj ${nj} --cmd "$train_cmd" \
+            data/${name}_mfcc_16k exp/make_mfcc ${mfccdir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
+        sid/compute_vad_decision.sh --nj 1 --cmd "$train_cmd" \
+            data/${name}_mfcc_16k exp/make_vad ${vaddir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
+    done
+
+    # Check pretrained model existence
+    nnet_dir=exp/xvector_nnet_1a
+    if [ ! -e ${nnet_dir} ]; then
+        echo "X-vector model does not exist. Download pre-trained model."
+        wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
+        tar xvf 0008_sitw_v2_1a.tar.gz
+        mv 0008_sitw_v2_1a/exp/xvector_nnet_1a exp
+        rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
+    fi
+    # Extract x-vector
+    for name in ${trg_train_set} ${trg_dev_set} ${trg_eval_set}; do
+        sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj 1 \
+            ${nnet_dir} data/${name}_mfcc_16k \
+            ${nnet_dir}/xvectors_${name}
+    done
+    # Update json
+    for name in ${trg_train_set} ${trg_dev_set} ${trg_eval_set}; do
+        local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
+    done
+fi
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "stage 4: Pair Json Data Preparation"
 
     # make pair json
     if [ ${num_train_utts} -ge 0 ]; then
@@ -246,8 +286,8 @@ else
     expname=${srcspk}_${trgspk}_${backend}_${tag}
 fi
 expdir=exp/${expname}
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: VC model training"
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: VC model training"
 
     mkdir -p ${expdir}
     if [ ${num_train_utts} -ge 0 ]; then
@@ -277,8 +317,8 @@ if [ -z "${model}" ]; then
     model=$(basename ${model})
 fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "stage 5: Decoding and synthesis"
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: Decoding and synthesis"
 
     echo "Decoding..."
     pids=() # initialize pids
@@ -396,8 +436,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "stage 6: Objective Evaluation"
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "stage 7: Objective Evaluation"
 
     for name in ${pair_dev_set} ${pair_eval_set}; do
         local/ob_eval/evaluate.sh --nj ${nj} \
