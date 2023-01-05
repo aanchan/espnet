@@ -50,8 +50,8 @@ pretrained_model=m_ailabs.judy.vtn_tts_pt           # available pretrained model
 
 # dataset configuration
 db_root=downloads/jp_dialect
-srcspk=TK05                  # available speakers: "slt" "clb" "bdl" "rms"
-trgspk=HCK02
+srcspk=HCK02                  # available speakers: "slt" "clb" "bdl" "rms"
+trgspk=TK05
 num_train_utts=-1           # -1: use all 932 utts
 norm_name=judy                  # used to specify normalized data.
                             # Ex: `judy` for normalization with pretrained model, `self` for self-normalization

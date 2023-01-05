@@ -50,8 +50,8 @@ pretrained_model=phn_train_no_dev_pytorch_ept_train_pytorch_transformer_spk_emb 
 
 # dataset configuration
 db_root=downloads/jp_dialect
-srcspk=TK05                  # available speakers: "slt" "clb" "bdl" "rms"
-trgspk=HCK02
+srcspk=HCK02                   # available speakers: "slt" "clb" "bdl" "rms"
+trgspk=TK05
 num_train_utts=-1           # -1: use all 932 utts
 norm_name=judy                  # used to specify normalized data.
                             # Ex: `judy` for normalization with pretrained model, `self` for self-normalization
@@ -86,9 +86,9 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     #local/data_download.sh ${db_root} ${trgspk}
 
     # download pretrained model for training
-    if [ -n "${pretrained_model}" ]; then
-        local/pretrained_model_download.sh ${db_root} ${pretrained_model}
-    fi
+    #if [ -n "${pretrained_model}" ]; then
+    #    local/pretrained_model_download.sh ${db_root} ${pretrained_model}
+    #fi
 
     # download pretrained PWG
     if [ ${voc} == "PWG" ]; then
@@ -206,7 +206,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # Make MFCCs and compute the energy-based VAD for each dataset
     mfccdir=mfcc
     vaddir=mfcc
-    for name in ${trg_train_set} ${trg_dev_set} ${trg_eval_set}; do
+    for name in ${trg_train_set} ${trg_dev_set} ${trg_eval_set} \
+		${src_train_set} ${src_dev_set} ${src_eval_set}; do
         utils/copy_data_dir.sh data/${name} data/${name}_mfcc_16k
         utils/data/resample_data_dir.sh 16000 data/${name}_mfcc_16k
         steps/make_mfcc.sh \
@@ -230,15 +231,20 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
     fi
     # Extract x-vector
-    for name in ${trg_train_set} ${trg_dev_set} ${trg_eval_set}; do
+    for name in ${trg_train_set} ${trg_dev_set} ${trg_eval_set} \
+		${src_train_set} ${src_dev_set} ${src_eval_set}; do
         sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj 1 \
             ${nnet_dir} data/${name}_mfcc_16k \
             ${nnet_dir}/xvectors_${name}
     done
+
+    local/update_json.sh ${trg_feat_tr_dir}/data.json ${nnet_dir}/xvectors_${trg_train_set}/xvector.scp
+    local/update_json.sh ${trg_feat_dt_dir}/data.json ${nnet_dir}/xvectors_${trg_dev_set}/xvector.scp
+    local/update_json.sh ${trg_feat_ev_dir}/data.json ${nnet_dir}/xvectors_${trg_eval_set}/xvector.scp
+    local/update_json.sh ${src_feat_tr_dir}/data.json ${nnet_dir}/xvectors_${src_train_set}/xvector.scp
+    local/update_json.sh ${src_feat_dt_dir}/data.json ${nnet_dir}/xvectors_${src_dev_set}/xvector.scp
+    local/update_json.sh ${src_feat_ev_dir}/data.json ${nnet_dir}/xvectors_${src_eval_set}/xvector.scp
     # Update json
-    for name in ${trg_train_set} ${trg_dev_set} ${trg_eval_set}; do
-        local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
-    done
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
