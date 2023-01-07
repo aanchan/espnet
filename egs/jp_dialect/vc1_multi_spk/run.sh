@@ -205,7 +205,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 	data2json.sh --feat ${dumpdir}/${spk_dev_set}_${norm_name}/feats.scp \
              data/${spk_dev_set} ${dict} > ${dumpdir}/${spk_dev_set}_${norm_name}/data.json
 	
-	data2json.sh --feat ${dumpdir}/${spk_dev_set}_${norm_name}/feats.scp \
+	data2json.sh --feat ${dumpdir}/${spk_eval_set}_${norm_name}/feats.scp \
              data/${spk_eval_set} ${dict} > ${dumpdir}/${spk_eval_set}_${norm_name}/data.json
     done
 
