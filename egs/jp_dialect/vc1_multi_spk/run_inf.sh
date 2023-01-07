@@ -9,8 +9,8 @@
 
 # general configuration
 backend=pytorch
-stage=-1
-stop_stage=5
+stage=6
+stop_stage=6
 ngpu=3       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=2       # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -43,7 +43,7 @@ decode_config=conf/decode.yaml
 # decoding related
 outdir=                     # In case not evaluation not executed together with decoding & synthesis stage
 model=                      # VC Model checkpoint for decoding. If not specified, automatically set to the latest checkpoint 
-voc=GL                     # vocoder used (GL or PWG)
+voc=PWG                     # vocoder used (GL or PWG)
 griffin_lim_iters=64        # The number of iterations of Griffin-Lim
 
 # pretrained model related
