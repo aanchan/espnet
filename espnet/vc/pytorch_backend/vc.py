@@ -697,9 +697,9 @@ def decode(args):
         data = load_inputs_and_targets(batch)
         x = torch.FloatTensor(data[0][0]).to(device)
         spemb = None
-        print(f'Before speaker emb')
+        logging.info("Before speaker embedding")
         if train_args.use_speaker_embedding:
-            print(f'Using spk emb for utt_id:{utt_id}')
+            logging.info("Using speaker embedding")
             spemb = torch.FloatTensor(data[1][0]).to(device)
 
         # decode and write
