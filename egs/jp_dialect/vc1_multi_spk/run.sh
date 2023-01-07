@@ -3,14 +3,14 @@
 # Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-#UL
-#. ./path.sh || exit 1;
-#. ./cmd.sh || exit 1;
+
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
 stage=-1
-stop_stage=100
+stop_stage=5
 ngpu=3       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=2       # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -59,7 +59,7 @@ norm_name=pt_norm                 # used to specify normalized data.
                             # Ex: `pt_norm` for normalization with pretrained model, `self` for self-normalization
 
 # exp tag
-tag=""  # tag for managing experiments.
+tag="multi_spk"  # tag for managing experiments.
 
 #UL
 #. utils/parse_options.sh || exit 1;
@@ -177,6 +177,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   done
 fi
 
+train_dir=${dumpdir}/train_dir && mkdir -p ${train_dir}
+dev_dir=${dumpdir}/dev_dir && mkdir -p ${dev_dir}
+eval_dir=${dumpdir}/eval_dir && mkdir -p ${eval_dir}
+
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
 
@@ -190,46 +194,54 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         spk_train_set=${spk}_train
         spk_dev_set=${spk}_dev
         spk_eval_set=${spk}_eval
-        data2json.sh --feat ${src_feat_tr_dir}/feats.scp \
+        data2json.sh --feat data/${spk_train_set}/feats.scp \
              data/${spk_train_set} ${dict} > ${dumpdir}/${spk_train_set}_${norm_name}/data.json
-        data2json.sh --feat ${src_feat_dt_dir}/feats.scp \
+	        
+	data2json.sh --feat data/${spk_dev_set}/feats.scp \
              data/${spk_dev_set} ${dict} > ${dumpdir}/${spk_dev_set}_${norm_name}/data.json
-        data2json.sh --feat ${src_feat_ev_dir}/feats.scp \
+	
+	data2json.sh --feat data/${spk_eval_set}/feats.scp \
              data/${spk_eval_set} ${dict} > ${dumpdir}/${spk_eval_set}_${norm_name}/data.json
+    done
+
+    [ -e data/tgt_spk_list_train ] && rm data/tgt_spk_list_train
+    [ -e data/tgt_spk_list_dev ] && rm data/tgt_spk_list_dev
+    [ -e data/tgt_spk_list_eval ] && rm data/tgt_spk_list_eval
+    
+    touch data/tgt_spk_list_train
+    touch data/tgt_spk_list_dev
+    touch data/tgt_spk_list_ev
+
+    for spk in ${target_spks[*]};do
+	spk_train_set=${spk}_train
+	spk_dev_set=${spk}_dev
+	spk_eval_set=${spk}_eval
+	echo "${spk}" "${dumpdir}/${spk_train_set}_${norm_name}/data.json" >> data/tgt_spk_list_train
+	echo "${spk}" "${dumpdir}/${spk_dev_set}_${norm_name}/data.json" >> data/tgt_spk_list_dev
+	echo "${spk}" "${dumpdir}/${spk_eval_set}_${norm_name}/data.json" >> data/tgt_spk_list_eval
+    done
+
+    [ -e data/src_spk_list_train ] && rm data/src_spk_list_train
+    [ -e data/src_spk_list_dev ] && rm data/src_spk_list_dev
+    [ -e data/src_spk_list_eval ] && rm data/src_spk_list_eval
+    
+    
+    touch data/src_spk_list_train
+    touch data/src_spk_list_dev
+    touch data/src_spk_list_eval
+    for spk in ${source_spks[*]}; do
+	spk_train_set=${spk}_train
+	spk_dev_set=${spk}_dev
+	spk_eval_set=${spk}_eval
+	echo "${spk}" "${dumpdir}/${spk_train_set}_${norm_name}/data.json" >> data/src_spk_list_train
+	echo "${spk}" "${dumpdir}/${spk_dev_set}_${norm_name}/data.json" >> data/src_spk_list_dev
+	echo "${spk}" "${dumpdir}/${spk_eval_set}_${norm_name}/data.json" >> data/src_spk_list_eval
     done
 fi
 
-touch data/tgt_spk_list_train
-touch data/tgt_spk_list_dev
-touch data/tgt_spk_list_ev
-
-train_dir=${dumpdir}/train_dir
-dev_dir=${dumpdir}/dev_dir
-eval_dir=${dumpdir}/eval_dir
-
-for spk in ${target_spks[*]} do;
-  spk_train_set=${spk}_train
-  spk_dev_set=${spk}_dev
-  spk_eval_set=${spk}_eval
-  echo "${spk}" "${dumpdir}/${spk_train_set}_${norm_name}/data.json" >> data/tgt_spk_list_train
-  echo "${spk}" "${dumpdir}/${spk_dev_set}_${norm_name}/data.json" >> data/tgt_spk_list_dev
-  echo "${spk}" "${dumpdir}/${spk_eval_set}_${norm_name}/data.json" >> data/tgt_spk_list_eval
-done
 
 
-touch data/src_spk_list_train
-touch data/src_spk_list_dev
-touch data/src_spk_list_eval
-for spk in ${source_spks[*]} do;
-  spk_train_set=${spk}_train
-  spk_dev_set=${spk}_dev
-  spk_eval_set=${spk}_eval
-  echo "${spk}" "${dumpdir}/${spk_train_set}_${norm_name}/data.json" >> data/src_spk_list_train
-  echo "${spk}" "${dumpdir}/${spk_dev_set}_${norm_name}/data.json" >> data/src_spk_list_dev
-  echo "${spk}" "${dumpdir}/${spk_eval_set}_${norm_name}/data.json" >> data/src_spk_list_eval
-done
 
-if [ ]; then
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: x-vector extraction"
     # Make MFCCs and compute the energy-based VAD for each dataset
@@ -279,6 +291,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # Update json
 fi
 
+
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Pair Json Data Preparation"
 
@@ -295,7 +308,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     make_pair_json_mult_spk.py \
         --src-spk-list data/src_spk_list_eval \
-        --trg-spk-list data/src_spk_list_eval \
+        --trg-spk-list data/tgt_spk_list_eval \
         -O ${eval_dir}/data.json
 
     src_spk_dev_set=${srcspk}_dev
@@ -303,13 +316,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     trg_spk_dev_set=${trgspk}_dev
     trg_spk_eval_set=${trgspk}_eval
     make_pair_json.py \
-        --src-json ${dumpdir}/src_spk_dev_set_${norm_name}/data.json \
-        --trg-json ${dumpdir}/src_spk_eval_set_${nor${dumpdir}/trg_spk_dev_set_${norm_name}m_name}/data.json \
+        --src-json ${dumpdir}/${src_spk_dev_set}_${norm_name}/data.json \
+        --trg-json ${dumpdir}/${trg_spk_dev_set}_${norm_name}/data.json \
         -O ${pair_dt_dir}/data.json
 
     make_pair_json.py \
-        --src-json ${dumpdir}/trg_spk_dev_set_${norm_name}/data.json \
-        --trg-json ${dumpdir}/trg_spk_eval_set_${norm_name}/data.json \
+        --src-json ${dumpdir}/${src_spk_eval_set}_${norm_name}/data.json \
+        --trg-json ${dumpdir}/${trg_spk_eval_set}_${norm_name}/data.json \
         -O ${pair_ev_dir}/data.json
 fi
 
@@ -355,11 +368,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
            --config ${train_config}
 fi
 
+
 if [ -z "${model}" ]; then
     model="$(find "${expdir}" -name "snapshot*" -print0 | xargs -0 ls -t 2>/dev/null | head -n 1)"
     model=$(basename ${model})
 fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
+if [ ];then
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 6: Decoding and synthesis"
 
