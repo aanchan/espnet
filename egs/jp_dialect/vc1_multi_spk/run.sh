@@ -199,13 +199,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         spk_train_set=${spk}_train
         spk_dev_set=${spk}_dev
         spk_eval_set=${spk}_eval
-        data2json.sh --feat data/${spk_train_set}/feats.scp \
+        data2json.sh --feat ${dumpdir}/${spk_train_set}_${norm_name}/feats.scp \
              data/${spk_train_set} ${dict} > ${dumpdir}/${spk_train_set}_${norm_name}/data.json
 	        
-	data2json.sh --feat data/${spk_dev_set}/feats.scp \
+	data2json.sh --feat ${dumpdir}/${spk_dev_set}_${norm_name}/feats.scp \
              data/${spk_dev_set} ${dict} > ${dumpdir}/${spk_dev_set}_${norm_name}/data.json
 	
-	data2json.sh --feat data/${spk_eval_set}/feats.scp \
+	data2json.sh --feat ${dumpdir}/${spk_dev_set}_${norm_name}/feats.scp \
              data/${spk_eval_set} ${dict} > ${dumpdir}/${spk_eval_set}_${norm_name}/data.json
     done
 
