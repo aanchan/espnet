@@ -10,7 +10,7 @@
 # general configuration
 backend=pytorch
 stage=-1
-stop_stage=5
+stop_stage=1
 ngpu=3       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=2       # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -72,17 +72,20 @@ set -o pipefail
 
 
 
-source_spks=(
-    "HCK01" "HCK02" "HCK03" "HCK04" "HCK05" "HSY01" "HSY02" \
-    "HSY03" "HSY04" "HSY05" "KOU01" "KOU02" "KOU03" "KOU04" \
-    "KOU05" "OS01" "OS02" "OS03" "OS04" "OS05"
-    )
+#source_spks=(
+#    "HCK01" "HCK02" "HCK03" "HCK04" "HCK05" "HSY01" "HSY02" \
+#    "HSY03" "HSY04" "HSY05" "KOU01" "KOU02" "KOU03" "KOU04" \
+#    "KOU05" "OS01" "OS02" "OS03" "OS04" "OS05"
+#    )
 
-target_spks=(
-    "TK01" "TK02" "TK03" "TK04" "TK05"
-    )
+source_spks=("HCK02")
 
+#target_spks=(
+#    "TK01" "TK02" "TK03" "TK04" "TK05"
+#    )
+target_spks=("TK05")
 spk_list=( "${source_spks[@]}" "${target_spks[@]}" )
+echo "${#spk_list[*]}"
 
 pair=${srcspk}_${trgspk}
 pair_dev_set=${pair}_dev
@@ -90,7 +93,7 @@ pair_eval_set=${pair}_eval
 pair_dt_dir=${dumpdir}/${pair_dev_set}_${norm_name}; mkdir -p ${pair_dt_dir}
 pair_ev_dir=${dumpdir}/${pair_eval_set}_${norm_name}; mkdir -p ${pair_ev_dir}
 
-echo "comment starts here"
+
 
 #TODO - delete these commented out lines, once reference need is complete
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
@@ -159,6 +162,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # If not using pretrained models statistics, calculate in a speaker-dependent way.
         if [ -n "${pretrained_model}" ]; then
             spk_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
+            echo ${spk_cmvn}
         else
             compute-cmvn-stats scp:data/${spk_train_set}/feats.scp data/${spk_train_set}/cmvn.ark
             spk_cmvn=data/${spk_train_set}/cmvn.ark
@@ -181,6 +185,7 @@ train_dir=${dumpdir}/train_dir && mkdir -p ${train_dir}
 dev_dir=${dumpdir}/dev_dir && mkdir -p ${dev_dir}
 eval_dir=${dumpdir}/eval_dir && mkdir -p ${eval_dir}
 
+if [ ];then
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
 
@@ -495,7 +500,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 fi
 
-if [ ];then
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "stage 7: Objective Evaluation"
 
