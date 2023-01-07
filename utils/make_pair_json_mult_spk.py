@@ -54,24 +54,25 @@ if __name__ == "__main__":
     src_spks = {}
     with open(args.src_spk_list, "r") as f:
         for line in f:
-            spk, spk_json = line.split(' ')
+            spk, spk_json = line.strip().split(' ')
             src_spks[spk] = spk_json
 
     trg_spks = {}
-    with open(args.src_spk_list, "r") as f:
+    with open(args.trg_spk_list, "r") as f:
         for line in f:
-            spk, spk_json = line.split(' ')
-            src_spks[spk] = spk_json
+            spk, spk_json = line.strip().split(' ')
+            trg_spks[spk] = spk_json
     data = {"utts": {}}
+    count = 1 
     for trg_spk, trg_json_path in trg_spks.items():
 
-        with open(trg_json_path, "rb") as f:
-            trg_json = json.load(f)["utts"]
+        with open(trg_json_path, "rb") as trg_f:
+            trg_json = json.load(trg_f)["utts"]
 
             for src_spk, src_json_path in src_spks.items():
-                with open(src_json_path, "rb") as f:
+                with open(src_json_path, "rb") as src_f:
 
-                    src_json = json.load(f)["utts"]
+                    src_json = json.load(src_f)["utts"]
 
                     # get source and target speaker
                     _ = list(src_json.keys())[0].split("_")
@@ -80,23 +81,23 @@ if __name__ == "__main__":
                     _ = list(trg_json.keys())[0].split("_")
                     trgspk = _[0]
 
-                    count = 0
+                    
 
                     # (dirty) loop through input only because in/out should have same files
                     for k, v in src_json.items():
                         _ = k.split("_")
                         number = "_".join(_[1:])
-
+                        number_key = f'{count:04}'
+                        print(number_key)
                         entry = {"input": src_json[srcspk + "_" + number]["input"]}
 
-                        if args.trg_json:
-                            entry["output"] = trg_json[trgspk + "_" + number]["input"]
-                            entry["output"][0]["name"] = "target1"
+                        
+                        entry["output"] = trg_json[trgspk + "_" + number]["input"]
+                        entry["output"][0]["name"] = "target1"
 
-                        data["utts"][number] = entry
+                        data["utts"][number_key] = entry
                         count += 1
-                        if args.num_utts > 0 and count >= args.num_utts:
-                            break
+                        
 
     if args.out is None:
         out = sys.stdout
