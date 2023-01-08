@@ -10,7 +10,7 @@
 # general configuration
 backend=pytorch
 stage=-1
-stop_stage=1
+stop_stage=100
 ngpu=3       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=2       # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -72,18 +72,15 @@ set -o pipefail
 
 
 
-#source_spks=(
-#    "HCK01" "HCK02" "HCK03" "HCK04" "HCK05" "HSY01" "HSY02" \
-#    "HSY03" "HSY04" "HSY05" "KOU01" "KOU02" "KOU03" "KOU04" \
-#    "KOU05" "OS01" "OS02" "OS03" "OS04" "OS05"
-#    )
+source_spks=(
+    "HCK01" "HCK02" "HCK03" "HCK04" "HCK05" )
 
-source_spks=("HCK02")
 
-#target_spks=(
-#    "TK01" "TK02" "TK03" "TK04" "TK05"
-#    )
-target_spks=("TK05")
+
+target_spks=(
+    "TK01" "TK02" "TK03" "TK04" "TK05"
+    )
+
 spk_list=( "${source_spks[@]}" "${target_spks[@]}" )
 echo "${#spk_list[*]}"
 
@@ -185,7 +182,7 @@ train_dir=${dumpdir}/train_dir && mkdir -p ${train_dir}
 dev_dir=${dumpdir}/dev_dir && mkdir -p ${dev_dir}
 eval_dir=${dumpdir}/eval_dir && mkdir -p ${eval_dir}
 
-if [ ];then
+
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
 
@@ -499,7 +496,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 fi
-
+if [ ];then
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "stage 7: Objective Evaluation"
 
