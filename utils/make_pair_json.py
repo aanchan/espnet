@@ -25,6 +25,9 @@ def get_parser():
         default=None,
         help="Json file for the target speaker. If not specified, use source only.",
     )
+    parser.add_argument("--source-spk-emb",
+                        default=False,type=bool,
+                        help="Enforce output to have the same speaker embedding as input")
     parser.add_argument(
         "--num_utts", default=-1, type=int, help="Number of utterances (take from head)"
     )
@@ -75,6 +78,8 @@ if __name__ == "__main__":
         if args.trg_json:
             entry["output"] = trg_json[trgspk + "_" + number]["input"]
             entry["output"][0]["name"] = "target1"
+            if args.source_spk_emb:
+                entry["output"][1]["feat"] = entry["input"][1]["feat"]
 
         data["utts"][number] = entry
         count += 1
